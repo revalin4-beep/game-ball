@@ -1,0 +1,232 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Game Tangkap Bola + Quiz</title>
+  <style>
+    body {
+      margin: 0;
+      padding: 0;
+      text-align: center;
+      background: #f0f8ff;
+      font-family: Arial, sans-serif;
+      touch-action: none; /* biar swipe di layar gak scroll */
+    }
+    canvas {
+      background: #87ceeb;
+      display: block;
+      margin: auto;
+      border: 2px solid #333;
+      border-radius: 10px;
+    }
+    #controls {
+      margin-top: 15px;
+    }
+    button {
+      font-size: 22px;
+      padding: 15px 25px;
+      margin: 8px;
+      border: none;
+      border-radius: 10px;
+      background: #4CAF50;
+      color: white;
+      cursor: pointer;
+    }
+    button:active {
+      background: #45a049;
+    }
+    #quiz {
+      display: none;
+      margin-top: 20px;
+      background: #fff3cd;
+      border: 2px solid #856404;
+      padding: 15px;
+      border-radius: 10px;
+      max-width: 400px;
+      margin-left: auto;
+      margin-right: auto;
+    }
+    #quiz button {
+      display: block;
+      margin: 8px auto;
+      width: 80%;
+    }
+  </style>
+</head>
+<body>
+  <h2>🎮 Game Tangkap Bola + Quiz Geometri</h2>
+  <canvas id="gameCanvas" width="400" height="600"></canvas>
+  <div id="controls">
+    <button onclick="moveLeft()">⬅️</button>
+    <button onclick="moveRight()">➡️</button>
+  </div>
+
+  <!-- Tampilan Quiz -->
+  <div id="quiz">
+    <h3 id="question">Soal Matematika</h3>
+    <div id="options"></div>
+  </div>
+
+  <script>
+    const canvas = document.getElementById("gameCanvas");
+    const ctx = canvas.getContext("2d");
+
+    // Pemain (keranjang)
+    const player = {
+      x: canvas.width / 2 - 40,
+      y: canvas.height - 40,
+      width: 80,
+      height: 20,
+      speed: 20
+    };
+
+    // Bola
+    let ball = {
+      x: Math.random() * (canvas.width - 20),
+      y: 0,
+      radius: 15,
+      speed: 3
+    };
+
+    let score = 0;
+    let playing = true;
+
+    // Soal geometri
+    const questions = [
+      { q: "Luas persegi dengan sisi 12 cm adalah ... cm²", options: ["120", "144", "100", "130"], answer: "144" },
+      { q: "Keliling lingkaran dengan jari-jari 7 cm (π=22/7) adalah ... cm", options: ["44", "49", "56", "77"], answer: "44" },
+      { q: "Sebuah segitiga memiliki alas 10 cm dan tinggi 12 cm. Luasnya adalah ... cm²", options: ["60", "120", "100", "80"], answer: "60" },
+      { q: "Jika panjang persegi panjang 15 cm dan lebar 8 cm, kelilingnya adalah ... cm", options: ["30", "40", "46", "50"], answer: "46" }
+    ];
+
+    let currentQuestion = 0;
+
+    // Gambar pemain
+    function drawPlayer() {
+      ctx.fillStyle = "#FF5733";
+      ctx.fillRect(player.x, player.y, player.width, player.height);
+    }
+
+    // Gambar bola
+    function drawBall() {
+      ctx.beginPath();
+      ctx.arc(ball.x, ball.y, ball.radius, 0, Math.PI * 2);
+      ctx.fillStyle = "#FFD700";
+      ctx.fill();
+      ctx.closePath();
+    }
+
+    // Tampilkan skor
+    function drawScore() {
+      ctx.fillStyle = "#000";
+      ctx.font = "20px Arial";
+      ctx.fillText("Skor: " + score, 10, 30);
+    }
+
+    // Update bola
+    function updateBall() {
+      if (!playing) return;
+      ball.y += ball.speed;
+
+      if (ball.y + ball.radius >= player.y && ball.x >= player.x && ball.x <= player.x + player.width) {
+        score++;
+        if (score % 3 === 0) {
+          showQuiz();
+        }
+        resetBall();
+      }
+
+      if (ball.y > canvas.height) {
+        alert("Game Over! Skor kamu: " + score);
+        document.location.reload();
+      }
+    }
+
+    function resetBall() {
+      ball.x = Math.random() * (canvas.width - 20);
+      ball.y = 0;
+      ball.speed += 0.2;
+    }
+
+    // Kontrol keyboard
+    document.addEventListener("keydown", function (e) {
+      if (e.key === "ArrowLeft") moveLeft();
+      if (e.key === "ArrowRight") moveRight();
+    });
+
+    // Kontrol tombol
+    function moveLeft() {
+      player.x -= player.speed;
+      if (player.x < 0) player.x = 0;
+    }
+    function moveRight() {
+      player.x += player.speed;
+      if (player.x + player.width > canvas.width) player.x = canvas.width - player.width;
+    }
+
+    // Kontrol geser layar (swipe/touch)
+    let touchX = null;
+    canvas.addEventListener("touchstart", e => {
+      touchX = e.touches[0].clientX;
+    });
+    canvas.addEventListener("touchmove", e => {
+      if (touchX === null) return;
+      let currentX = e.touches[0].clientX;
+      let dx = currentX - touchX;
+      player.x += dx * 0.2; // sensitivitas
+      if (player.x < 0) player.x = 0;
+      if (player.x + player.width > canvas.width) player.x = canvas.width - player.width;
+      touchX = currentX;
+    });
+    canvas.addEventListener("touchend", () => {
+      touchX = null;
+    });
+
+    // Quiz
+    function showQuiz() {
+      playing = false;
+      const quizDiv = document.getElementById("quiz");
+      const questionEl = document.getElementById("question");
+      const optionsEl = document.getElementById("options");
+
+      const q = questions[currentQuestion];
+      questionEl.textContent = q.q;
+      optionsEl.innerHTML = "";
+
+      q.options.forEach(opt => {
+        const btn = document.createElement("button");
+        btn.textContent = opt;
+        btn.onclick = () => checkAnswer(opt);
+        optionsEl.appendChild(btn);
+      });
+
+      quizDiv.style.display = "block";
+    }
+
+    function checkAnswer(selected) {
+      const q = questions[currentQuestion];
+      if (selected === q.answer) {
+        alert("✅ Benar!");
+      } else {
+        alert("❌ Salah. Jawaban benar: " + q.answer);
+      }
+      currentQuestion = (currentQuestion + 1) % questions.length;
+      document.getElementById("quiz").style.display = "none";
+      playing = true;
+    }
+
+    // Loop game
+    function gameLoop() {
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      drawPlayer();
+      drawBall();
+      drawScore();
+      updateBall();
+      requestAnimationFrame(gameLoop);
+    }
+
+    gameLoop();
+  </script>
+</body>
+</html>
